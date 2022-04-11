@@ -8,12 +8,19 @@
       pkgs = nixpkgs-unstable.legacyPackages.x86_64-linux;
       projectDir = ./.;
       python = pkgs.python38;
-      package = python.pkgs.buildPythonPackage {
+      flower-power = with python.pkgs; buildPythonPackage {
         name = "flower-power";
         src = ./.;
+        propagatedBuildInputs = [
+          requests
+        ];
       };
     in flake-utils.lib.eachDefaultSystem (system: {
-      defaultPackage = package;
-      devShell = package.env;
+      defaultPackage = flower-power;
+      devShell = pkgs.mkShell {
+        buildInputs = [
+          (python.withPackages (ps: [ flower-power ]))
+        ];
+      };
     });
 }
