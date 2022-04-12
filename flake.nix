@@ -4,24 +4,26 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
   outputs = { self, nixpkgs, flake-utils }:
-    let
-      pkgs = nixpkgs.legacyPackages.x86_64-linux;
-      projectDir = ./.;
-      overlay = self: super: {
-        flower-power = with super.python.pkgs;
-          buildPythonPackage {
-            name = "flower-power";
-            src = ./.;
-            propagatedBuildInputs = [ requests ];
-          };
-      };
-      defaultPython = pkgs.python38;
-      finalPython = defaultPython.override { packageOverrides = overlay; };
-    in flake-utils.lib.eachDefaultSystem (system: {
-      inherit overlay;
-      defaultPackage = finalPython.pkgs.flower-power;
-      devShell = pkgs.mkShell {
-        buildInputs = [ (finalPython.withPackages (ps: [ ps.flower-power ])) ];
-      };
-    });
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+        projectDir = ./.;
+        overlay = self: super: {
+          flower-power = with super.python.pkgs;
+            buildPythonPackage {
+              name = "flower-power";
+              src = ./.;
+              propagatedBuildInputs = [ requests ];
+            };
+        };
+        defaultPython = pkgs.python38;
+        finalPython = defaultPython.override { packageOverrides = overlay; };
+      in {
+        inherit overlay;
+        defaultPackage = finalPython.pkgs.flower-power;
+        devShell = pkgs.mkShell {
+          buildInputs =
+            [ (finalPython.withPackages (ps: [ ps.flower-power ])) ];
+        };
+      });
 }
