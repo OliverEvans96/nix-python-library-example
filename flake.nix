@@ -1,25 +1,33 @@
 {
   inputs = {
-    nixpkgs-unstable.url = "nixpkgs/nixos-21.11";
+    nixpkgs.url = "nixpkgs/nixos-21.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
-  outputs = { self, nixpkgs-unstable, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils }:
     let
-      pkgs = nixpkgs-unstable.legacyPackages.x86_64-linux;
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
       projectDir = ./.;
-      python = pkgs.python38;
-      flower-power = with python.pkgs; buildPythonPackage {
-        name = "flower-power";
-        src = ./.;
-        propagatedBuildInputs = [
-          requests
-        ];
+      overlay = self: super:
+        {
+          flower-power = with super.python.pkgs;
+            buildPythonPackage {
+              name = "flower-power";
+              src = ./.;
+              propagatedBuildInputs = [
+                requests
+              ];
+            };
+        };
+      defaultPython = pkgs.python38;
+      finalPython = defaultPython.override {
+        packageOverrides = overlay;
       };
     in flake-utils.lib.eachDefaultSystem (system: {
-      defaultPackage = flower-power;
+      inherit overlay;
+      defaultPackage = finalPython.pkgs.flower-power;
       devShell = pkgs.mkShell {
         buildInputs = [
-          (python.withPackages (ps: [ flower-power ]))
+          (finalPython.withPackages (ps: [ ps.flower-power ]))
         ];
       };
     });
